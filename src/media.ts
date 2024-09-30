@@ -13,4 +13,5 @@ export interface TaficloudMedia {
     key: string;
     mimeType: string;
     size: number;
+    folderId?: number;
 }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import {TaficloudMedia, TaficloudResponse} from "./Media";
+import {TaficloudMedia, TaficloudResponse} from "./media";
 
 export class Taficloud {
 
