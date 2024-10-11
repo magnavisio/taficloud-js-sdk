@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as fs from "fs";
 import path from "path";
+import FormData from "form-data";
 import { TaficloudMedia, TaficloudResponse } from "./media";
 
 export class Taficloud {
@@ -103,8 +104,6 @@ export class Taficloud {
         }
       );
 
-      console.log(response.data);
-
       return (response.data as TaficloudResponse<TaficloudMedia>).data;
     } catch (error) {
       throw new Error(`Failed to upload file: ${error}`);
@@ -113,10 +112,9 @@ export class Taficloud {
 
   async download(
     key: string,
-    download: boolean = false,
     width?: number,
     height?: number
-  ): Promise<void> {
+  ): Promise<string> {
     try {
       const url = `/download/?media=${encodeURIComponent(key)}`;
       const response = await this.getAxiosInstance().get(url, {
@@ -131,9 +129,7 @@ export class Taficloud {
       const filePath = path.join(downloadsDir, fileName);
 
       await fs.promises.writeFile(filePath, Buffer.from(response.data));
-      if (download) {
-        console.log(`File downloaded to ${filePath}`);
-      }
+      return `File downloaded to ${filePath}`;
     } catch (error) {
       throw new Error(`Failed to download file: ${error}`);
     }
@@ -197,34 +193,29 @@ export class Taficloud {
     }
   }
 
-  async compressImage(
-    imageFile: File | Blob | Buffer,
-    customOptions: any = {}
-  ): Promise<any> {
+  async compressImage(filePath: string, options: object) {
     try {
+      const fileStream = fs.createReadStream(filePath);
+
       const formData = new FormData();
-
-      if (Buffer.isBuffer(imageFile)) {
-        formData.append("image", new Blob([imageFile]), "image.jpg");
-      } else {
-        formData.append("image", imageFile);
-      }
-
-      formData.append("options", JSON.stringify(customOptions));
+      formData.append("file", fileStream);
+      formData.append("options", JSON.stringify(options));
 
       const response = await this.getAxiosInstance().post(
-        "/compress-img-file",
+        `/compress-img-file`,
         formData,
         {
           headers: {
-            // "Content-Type": "multipart/form-data",
+            ...formData.getHeaders(),
           },
+          responseType: "arraybuffer",
         }
       );
 
-      return (response.data as TaficloudResponse<TaficloudMedia>).data;
+      const outputPath = "./src/compressed-image.jpg";
+      fs.writeFileSync(outputPath, response.data);
     } catch (error) {
-      throw new Error(`Failed to compress image: ${error}`);
+      throw new Error(`Image compression failed: ${error}`);
     }
   }
 }
